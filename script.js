@@ -7,7 +7,12 @@ let lastX, lastY;
 let paintTexture, paintCanvas, paintCtx;
 
 const canvas = document.getElementById("myCanvas");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: true,
+  antialias: true,
+  preserveDrawingBuffer: true,
+});
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.outputEncoding = THREE.sRGBEncoding;
@@ -324,6 +329,34 @@ function getFirstTexture(model) {
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
+const textureLoader = new THREE.TextureLoader();
+
+const textures = {
+  plastic: textureLoader.load(
+    "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/textur-kristina-paukshtite-1998922.jpg?v=1749667583075"
+  ),
+  plants: textureLoader.load(
+    "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/Best-Colorful-Houseplants-FB.jpg?v=1749667692340"
+  ),
+  slime: textureLoader.load(
+    "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/triana-nana-VWyiLOKgsgM-unsplash-slime-600.jpg?v=1749667572394"
+  ),
+};
+
+let currentPaintTexture = textures.plastic; // default
+
+document.getElementById("plasticBtn").addEventListener("click", () => {
+  currentPaintTexture = textures.plastic;
+});
+
+document.getElementById("plantsBtn").addEventListener("click", () => {
+  currentPaintTexture = textures.plants;
+});
+
+document.getElementById("slimeBtn").addEventListener("click", () => {
+  currentPaintTexture = textures.slime;
+});
+
 let currentPaintMesh = null;
 
 function setupPaintTool(targetMesh) {
@@ -401,6 +434,18 @@ function updateMouse(e) {
   mouse.y = -((e.clientY - r.top) / r.height) * 2 + 1;
 }
 
+function createPatternFromTexture(texture) {
+  if (!texture || !texture.image) return null;
+
+  const patternCanvas = document.createElement("canvas");
+  patternCanvas.width = texture.image.width;
+  patternCanvas.height = texture.image.height;
+  const ctx = patternCanvas.getContext("2d");
+  ctx.drawImage(texture.image, 0, 0);
+
+  return paintCtx.createPattern(patternCanvas, "repeat");
+}
+
 // Draws brush texture onto model's canvas texture
 function paintOnModel() {
   if (!currentPaintMesh) return;
@@ -412,8 +457,17 @@ function paintOnModel() {
   const size = 32; // brush size
   const x = uv.x * paintCanvas.width - size / 2;
   const y = (1 - uv.y) * paintCanvas.height - size / 2;
-  paintCtx.fillStyle = "#000";
-  paintCtx.fillRect(x, y, size, size);
+
+  // Create a pattern from the current selected texture
+  const pattern = createPatternFromTexture(currentPaintTexture);
+  if (!pattern) return;
+
+  paintCtx.fillStyle = pattern;
+  paintCtx.beginPath();
+  paintCtx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+  paintCtx.fill();
+  paintCtx.closePath();
+
   paintTexture.needsUpdate = true;
 }
 
@@ -431,6 +485,131 @@ function stylePaintLabel(el) {
     zIndex: 1000,
   });
 }
+
+function updateTextureButtonsVisibility() {
+  const texturesDiv = document.getElementById("texturesDiv");
+  if (mixedModels.length > 0) {
+    texturesDiv.style.display = "flex"; // show buttons
+  } else {
+    texturesDiv.style.display = "none"; // hide buttons
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  updateTextureButtonsVisibility();
+});
+
+const texturesDiv = document.getElementById("texturesDiv");
+const emailBtn = document.getElementById("emailBtn");
+const userEmail = document.getElementById("userEmail");
+const skyBtn = document.getElementById("skyBtn");
+const selectModelBtn = document.getElementById("selectModelBtn");
+
+let mixedModelActive = false;
+
+// Call this function to show mixed model UI and disable model selection
+function showMixedModelUI() {
+  mixedModelActive = true;
+
+  // Hide model thumbnails and disable interactions
+  modelThumbnails.style.display = "none";
+  rightArrow.style.display = "none";
+  leftArrow.style.display = "none";
+  selectModelBtn.style.display = "none";
+  // selectModelBtn.disabled = true;
+  selectModelBtn.style.pointerEvents = "none";
+  selectModelBtn.style.opacity = "0.1"; // visually show disabled
+
+  // Show textures, email, and sky buttons
+  texturesDiv.style.display = "flex";
+  emailBtn.style.display = "inline-block";
+  skyBtn.style.display = "inline-block";
+  userEmail.style.display = "inline-block";
+}
+
+// Call this function to clear mixed model and reset UI
+function clearMixedModelUI() {
+  mixedModelActive = false;
+
+  // 🧽 Remove all mixed models from the scene
+  mixedModels.forEach((model) => scene.remove(model));
+  mixedModels.length = 0; // clear the array
+
+  // Reset UI
+  modelThumbnails.style.display = "flex";
+  // selectModelBtn.disabled = false;
+  selectModelBtn.style.display = "inline-block";
+  selectModelBtn.style.pointerEvents = "auto";
+  selectModelBtn.style.opacity = "1";
+  rightArrow.style.display = "inline-block";
+  leftArrow.style.display = "inline-block";
+
+  texturesDiv.style.display = "none";
+  emailBtn.style.display = "none";
+  skyBtn.style.display = "none";
+  userEmail.style.display = "none";
+}
+
+// emailBtn.addEventListener("click", () => {
+//   // Implement your email sending logic here
+//   // Once done, clear mixed model UI:
+//   clearMixedModelUI();
+// });
+
+emailBtn.addEventListener("click", () => {
+  const canvas = renderer.domElement;
+  const imageData = canvas.toDataURL("image/png");
+
+  // --- DOWNLOAD IMAGE ---
+  const link = document.createElement("a");
+  link.href = imageData;
+  link.download = "model_screenshot.png";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  // --- POPUP PREVIEW ---
+  const popup = document.createElement("div");
+  popup.style.position = "fixed";
+  popup.style.top = "50%";
+  popup.style.left = "50%";
+  popup.style.transform = "translate(-50%, -50%)";
+  popup.style.background = "#fff";
+  popup.style.padding = "20px";
+  popup.style.border = "2px solid #0088cc";
+  popup.style.borderRadius = "12px";
+  popup.style.zIndex = "9999";
+  popup.style.boxShadow = "0 0 20px rgba(0,0,0,0.5)";
+  popup.style.maxWidth = "90vw";
+  popup.style.maxHeight = "90vh";
+  popup.style.overflow = "auto";
+  popup.style.textAlign = "center";
+
+  const img = document.createElement("img");
+  img.src = imageData;
+  img.style.maxWidth = "100%";
+  img.style.height = "auto";
+  popup.appendChild(img);
+
+  const closeBtn = document.createElement("button");
+  closeBtn.textContent = "Close";
+  closeBtn.style.fontSize = "1.3vw";
+  closeBtn.style.marginTop = "10px";
+  closeBtn.style.padding = "6px 14px";
+  closeBtn.style.border = "none";
+  closeBtn.style.background = "grey";
+  closeBtn.style.color = "white";
+  closeBtn.style.borderRadius = "6px";
+  closeBtn.style.cursor = "pointer";
+  closeBtn.onclick = () => popup.remove();
+
+  popup.appendChild(document.createElement("br"));
+  popup.appendChild(closeBtn);
+  document.body.appendChild(popup);
+
+  // Optional: reset UI
+  clearMixedModelUI();
+});
 
 function showMixedModel() {
   if (unusedBaseModels.length === 0) {
@@ -482,6 +661,9 @@ function showMixedModel() {
   showCanvasAlert("Mixed model added! - Use left/right arrows to add another", {
     persistent: false,
   });
+
+  updateTextureButtonsVisibility();
+  showMixedModelUI();
 }
 
 async function init() {
