@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>MONSTER MIXER</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: Helvetica, sans-serif;
+        background: black;
+        color: white;
+      }
+
+      #myCanvas {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      #ui {
+        position: absolute;
+        bottom: 0px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        /*         gap: 10px; */
+        align-items: center;
+        z-index: 10;
+      }
+
+      button {
+        padding: 10px 20px;
+        font-size: 5vw;
+        background: transparent;
+        color: black;
+        border: none;
+        cursor: pointer;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .fade-text {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 1rem;
+        animation: fadeInOut 12s forwards;
+        text-transform: uppercase;
+      }
+
+      @keyframes fadeInOut {
+        0% {
+          opacity: 0;
+        }
+        50% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes bounce {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      @keyframes bounce {
+        /*         0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-10px);
+        } */
+        0%,
+        100% {
+          transform: scale(0.9);
+        }
+        50% {
+          transform: scale(1);
+        }
+      }
+
+      .highlighted {
+        /*         border-radius: 8px; rounded border */
+        border: 2px solid yellow !important;
+        animation: bounce 1s infinite;
+        /*         width: 15vw !important; */
+        /*         width: 8vw !important; */
+        background: linear-gradient(
+          rgb(211 211 211),
+          rgb(255 253 0)
+        ) !important;
+        transition-duration: 1s;
+        background-color: yellow !important;
+        box-shadow: none !important;
+      }
+
+      .arrows {
+        width: 8vw;
+        height: max-content;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        padding: 10px;
+        background: linear-gradient(
+          to bottom,
+          #d3d3d3,
+          #a9a9a9
+        ); /* light to dark gradient */
+        border: 1px solid #4a5764;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4),
+          /* main shadow */ inset 0 1px 0 white,
+          /* inner top highlight */ inset 0 -1px 0 #888; /* inner bottom shading */
+        pointer-events: auto;
+        border-radius: 4px;
+        font-weight: bold;
+        color: #333;
+      }
+
+      .arrows:hover {
+        animation: bounce 1s infinite;
+        transition-duration: 1s;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.4), inset 0 1px 0 white,
+          inset 0 -1px 0 #888;
+      }
+
+      #paintCanvas {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        width: 50vw;
+        height: 50vh;
+        transform: translate(-50%, -50%);
+        z-index: 999 !important;
+        pointer-events: none; /* Allow pointer events through */
+      }
+    </style>
+
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/loaders/GLTFLoader.js"></script>
+  </head>
+
+  <body>
+    <canvas id="paintCanvas" style="position: fixed; z-index: 10"></canvas>
+
+    <canvas id="myCanvas"></canvas>
+
+    <!--     <div class="fade-text">MONSTER MIXER</div> -->
+
+    <div
+      id="ui"
+      class="hidden"
+      style="
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+
+        background: linear-gradient(
+          to bottom,
+          #d3d3d3,
+          #a9a9a9
+        ); /* light to dark gradient */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4),
+          /* main shadow */ inset 0 1px 0 white,
+          /* inner top highlight */ inset 0 -1px 0 #888; /* inner bottom shading */
+        pointer-events: auto;
+        border-radius: 4px;
+        color: #333;
+      "
+    >
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          width: 100vw;
+          padding-top: 1vw;
+          padding-bottom: 1vw;
+          height: max-content;
+          justify-content: center;
+        "
+      >
+        <!--         <img
+          id="leftArrow"
+          src="https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/arrow.png?v=1749564021251"
+          style="width: 40px; cursor: pointer"
+        /> -->
+        <button
+          id="leftArrow"
+          class="arrows"
+          style="width: max-content; cursor: pointer"
+        >
+          ←
+        </button>
+        <div
+          id="modelThumbnails"
+          style="display: flex; gap: 10px; align-items: center"
+        ></div>
+        <!--         <img
+          id="rightArrow"
+          src="https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/arrow2.png?v=1749564026850"
+          style="width: 40px; cursor: pointer"
+        /> -->
+        <button
+          id="rightArrow"
+          class="arrows"
+          style="width: max-content; cursor: pointer"
+        >
+          →
+        </button>
+      </div>
+      <button
+        id="selectModelBtn"
+        class="bounce"
+        style="
+          padding: 8px 16px;
+          font-family: monospace;
+          font-size: 1.5vw;
+          width: 100%;
+          text-transform: uppercase;
+          background: lightgrey;
+          color: yellow;
+          background: linear-gradient(
+            to bottom,
+            #d3d3d3,
+            #a9a9a9
+          ); /* light to dark gradient */
+          border: 1px solid #4a5764;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4),
+            /* main shadow */ inset 0 1px 0 white,
+            /* inner top highlight */ inset 0 -1px 0 #888; /* inner bottom shading */
+          pointer-events: auto;
+          border-radius: 4px;
+          font-weight: bold;
+          color: #333;
+        "
+      >
+        Select
+      </button>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
