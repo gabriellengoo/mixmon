@@ -133,7 +133,7 @@ modelThumbs.forEach((src, index) => {
   const img = document.createElement("img");
   img.src = src;
   img.style.width = "8vw";
-  img.style.height = "max-content";
+  // img.style.height = "8vh";
   img.style.cursor = "pointer";
   img.style.transition = "all 0.3s ease";
   img.style.padding = "10px";
@@ -163,6 +163,10 @@ modelThumbs.forEach((src, index) => {
   modelThumbnails.appendChild(img);
 });
 
+function makeSpriteDraggable(sprite) {
+  sprite.userData.draggable = true;
+}
+
 function updateThumbnailBorder(index) {
   [...modelThumbnails.children].forEach((img, i) => {
     if (i === index) {
@@ -178,6 +182,70 @@ function updateThumbnailBorder(index) {
     }
   });
 }
+
+// Call this when your mixed model appears
+// showGIFThumbnails();
+
+// Make GIF draggable when clicked
+document.querySelectorAll(".gif-thumb").forEach((gifThumb) => {
+  gifThumb.addEventListener("click", function (e) {
+    const gifURL = gifThumb.src;
+
+    // Load GIF as texture
+    const texture = new THREE.TextureLoader().load(gifURL, () => {
+      const material = new THREE.SpriteMaterial({ map: texture });
+      const sprite = new THREE.Sprite(material);
+
+      // Set size and position (adjust as needed)
+      sprite.scale.set(0.5, 0.5, 0.5); // or (width, height, 1)
+      sprite.position.set(-1, 0, 0); // center, or use your own logic
+
+      // Add to scene
+      scene.add(sprite);
+
+      makeSpriteDraggable(sprite);
+    });
+  });
+});
+
+let draggableSprite = null;
+
+renderer.domElement.addEventListener("mousedown", (event) => {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(scene.children);
+
+  for (const intersect of intersects) {
+    if (intersect.object.userData.draggable) {
+      draggingSprite = intersect.object;
+      draggingSprite.userData.dragging = true;
+      break;
+    }
+  }
+});
+
+renderer.domElement.addEventListener("mousemove", (event) => {
+  if (draggingSprite && draggingSprite.userData.dragging) {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const planeZ = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+    const intersection = new THREE.Vector3();
+    raycaster.ray.intersectPlane(planeZ, intersection);
+
+    draggingSprite.position.copy(intersection);
+  }
+});
+
+renderer.domElement.addEventListener("mouseup", () => {
+  if (draggingSprite) {
+    draggingSprite.userData.dragging = false;
+    draggingSprite = null;
+  }
+});
 
 async function loadModel(url) {
   return new Promise((resolve) => {
@@ -390,7 +458,8 @@ function setupPaintTool(targetMesh) {
   //   Object.assign(alertDiv.style, {
   canvas.style.cursor = "crosshair";
   const info = document.createElement("div");
-  info.textContent = "Paint mode: click + drag";
+  info.textContent =
+    "Paint mode: click + drag. Double click/tap and drag gifs to add!";
   Object.assign(info.style, {
     position: "absolute",
     padding: "10px 20px",
@@ -504,6 +573,7 @@ const emailBtn = document.getElementById("emailBtn");
 const userEmail = document.getElementById("userEmail");
 const skyBtn = document.getElementById("skyBtn");
 const selectModelBtn = document.getElementById("selectModelBtn");
+const gifThumbnails = document.getElementById("gifThumbnails");
 
 let mixedModelActive = false;
 
@@ -521,10 +591,14 @@ function showMixedModelUI() {
   selectModelBtn.style.opacity = "0.1"; // visually show disabled
 
   // Show textures, email, and sky buttons
+  console.log("Showing gifs...");
+  gifThumbnails.style.display = "inline-block";
   texturesDiv.style.display = "flex";
   emailBtn.style.display = "inline-block";
   skyBtn.style.display = "inline-block";
   userEmail.style.display = "inline-block";
+
+  // showGIFThumbnails();
 }
 
 // Call this function to clear mixed model and reset UI
@@ -548,6 +622,7 @@ function clearMixedModelUI() {
   emailBtn.style.display = "none";
   skyBtn.style.display = "none";
   userEmail.style.display = "none";
+  gifThumbnails.style.display = "none";
 }
 
 // emailBtn.addEventListener("click", () => {
@@ -556,19 +631,12 @@ function clearMixedModelUI() {
 //   clearMixedModelUI();
 // });
 
-emailBtn.addEventListener("click", () => {
+emailBtn.addEventListener("click", async () => {
+  // 1. Get canvas screenshot
   const canvas = renderer.domElement;
-  const imageData = canvas.toDataURL("image/png");
+  const imageData = canvas.toDataURL("image/png").split(",")[1]; // base64 only
 
-  // --- DOWNLOAD IMAGE ---
-  const link = document.createElement("a");
-  link.href = imageData;
-  link.download = "model_screenshot.png";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  // --- POPUP PREVIEW ---
+  // 2. Create popup immediately
   const popup = document.createElement("div");
   popup.style.position = "fixed";
   popup.style.top = "50%";
@@ -584,31 +652,75 @@ emailBtn.addEventListener("click", () => {
   popup.style.maxHeight = "90vh";
   popup.style.overflow = "auto";
   popup.style.textAlign = "center";
+  popup.textContent = "Uploading image...";
 
-  const img = document.createElement("img");
-  img.src = imageData;
-  img.style.maxWidth = "100%";
-  img.style.height = "auto";
-  popup.appendChild(img);
-
-  const closeBtn = document.createElement("button");
-  closeBtn.textContent = "Close";
-  closeBtn.style.fontSize = "1.3vw";
-  closeBtn.style.marginTop = "10px";
-  closeBtn.style.padding = "6px 14px";
-  closeBtn.style.border = "none";
-  closeBtn.style.background = "grey";
-  closeBtn.style.color = "white";
-  closeBtn.style.borderRadius = "6px";
-  closeBtn.style.cursor = "pointer";
-  closeBtn.onclick = () => popup.remove();
-
-  popup.appendChild(document.createElement("br"));
-  popup.appendChild(closeBtn);
   document.body.appendChild(popup);
 
-  // Optional: reset UI
-  clearMixedModelUI();
+  // 3. Upload to Imgur
+  try {
+    const imgurRes = await fetch("https://api.imgur.com/3/image", {
+      method: "POST",
+      headers: {
+        Authorization: "Client-ID 24b5f71637a86a9",
+        Accept: "application/json",
+      },
+      body: new URLSearchParams({
+        image: imageData,
+        type: "base64",
+      }),
+    });
+
+    const imgurData = await imgurRes.json();
+
+    if (!imgurData.success) throw new Error("Imgur upload failed");
+
+    const uploadedImageUrl = imgurData.data.link;
+
+    // 4. Generate QR Code (that points to the uploaded image URL)
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
+      uploadedImageUrl
+    )}&size=150x150`;
+
+    // 5. Clear and update popup content
+    popup.innerHTML = "";
+
+    // Screenshot image
+    const img = document.createElement("img");
+    img.src = uploadedImageUrl;
+    img.style.maxWidth = "100%";
+    img.style.height = "auto";
+
+    // QR code image
+    const qr = document.createElement("img");
+    qr.src = qrCodeUrl;
+    qr.alt = "Scan to view image";
+    qr.style.marginTop = "10px";
+    qr.style.border = "1px solid #ccc";
+    qr.style.padding = "4px";
+    qr.style.background = "#fafafa";
+
+    // Close button
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "Close";
+    closeBtn.style.fontSize = "1.3vw";
+    closeBtn.style.marginTop = "10px";
+    closeBtn.style.padding = "6px 14px";
+    closeBtn.style.border = "none";
+    closeBtn.style.background = "grey";
+    closeBtn.style.color = "white";
+    closeBtn.style.borderRadius = "6px";
+    closeBtn.style.cursor = "pointer";
+    closeBtn.onclick = () => popup.remove();
+
+    popup.appendChild(img);
+    popup.appendChild(document.createElement("br"));
+    popup.appendChild(qr);
+    popup.appendChild(document.createElement("br"));
+    popup.appendChild(closeBtn);
+  } catch (err) {
+    popup.textContent = "Failed to upload image. Try again.";
+    console.error(err);
+  }
 });
 
 function showMixedModel() {

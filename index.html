@@ -234,12 +234,36 @@
         border-color: yellow; /* Border turns yellow on hover */
         transform: scale(1.05); /* Slight zoom effect on hover */
       }
+
+      .gif-thumb {
+        width: 5vw;
+        cursor: pointer;
+        margin: 5px;
+        border-radius: 8px;
+        transition: transform 0.3s;
+      }
+
+      .gif-thumb:hover {
+        transform: scale(1.1);
+      }
+
+      .draggable-gif {
+        position: absolute;
+        width: 10vw;
+        cursor: move;
+        z-index: 1000;
+        pointer-events: auto;
+      }
+      
+      
     </style>
 
     <!-- Libraries -->
+
     <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/loaders/GLTFLoader.js"></script>
+    
   </head>
 
   <body>
@@ -272,6 +296,7 @@
         pointer-events: auto;
         border-radius: 4px;
         color: #333;
+                 bottom: 3vh;
       "
     >
       <div
@@ -302,33 +327,40 @@
           />
         </button>
       </div>
-
-      <div style="display: flex; width: 100%">
-        <button id="skyBtn" style="display: none">Change Sky 🌍</button>
-        <button id="emailBtn" style="display: none">Finish! 📷</button>
-      </div>
       <!-- Add your draggable GIF decorations -->
-      <div style="display: none">
+      <div
+        id="gifThumbnails"
+        class="gif-thumbs"
+        style="
+              display: none;
+          top: 10vh;
+          left: 10vw;
+          z-index: 100;
+        "
+      >
+<!--         <p>
+          Double click and drag to add!
+        </p> -->
         <img
           src="https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/Ohne-Titel-unscreen.gif?v=1749664788468"
-          class="decor-gif"
-          style="bottom: 60vh; left: 10px"
+          class="gif-thumb"
         />
         <img
           src="https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/20-unscreen.gif?v=1749664804936"
-          class="decor-gif"
-          style="bottom: 70vh; right: 10px"
+          class="gif-thumb"
         />
         <img
           src="https://cdn.glitch.me/71411a15-2fd2-431a-82d6-0aa1df09601b/03-unscreen.gif?v=1749664805794"
-          class="decor-gif"
-          style="bottom: 50vh; left: 50%"
+          class="gif-thumb"
         />
         <img
           src="https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/32-unscreen.gif?v=1749664804937"
-          class="decor-gif"
-          style="bottom: 60vh; left: 30%"
+          class="gif-thumb"
         />
+      </div>
+      <div style="display: flex; width: 100%">
+        <button id="skyBtn" style="display: none">Change Sky 🌍</button>
+        <button id="emailBtn" style="display: none">Finish! 📷</button>
       </div>
 
       <div
@@ -370,7 +402,7 @@
           padding: 8px 16px;
           font-family: monospace;
           font-size: 1.5vw;
-          width: 100%;
+          width: 90%;
           text-transform: uppercase;
           background: lightgrey;
           color: yellow;
