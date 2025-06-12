@@ -254,8 +254,9 @@
         z-index: 1000;
         pointer-events: auto;
       }
-      
-      
+      canvas {
+        touch-action: none; /* Prevents browser gestures like zoom/pan */
+      }
     </style>
 
     <!-- Libraries -->
@@ -263,7 +264,6 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/loaders/GLTFLoader.js"></script>
-    
   </head>
 
   <body>
@@ -303,12 +303,14 @@
         id="texturesDiv"
         class="textures"
         style="
-          display: none;
+          display: flex;
           gap: 0px;
           align-items: center;
-          flex-wrap: nowrap;
+          flex-flow: column;
           position: absolute;
-          bottom: 80vh;
+          bottom: 30vh;
+          right: 15vh;
+          pointer-events: auto;
         "
       >
         <button id="plasticBtn">
@@ -332,13 +334,18 @@
         id="gifThumbnails"
         class="gif-thumbs"
         style="
-              display: none;
-          top: 10vh;
-          left: 10vw;
+          display: none;
+          /* top: 10vh; */
+          /* left: 10vw; */
+          bottom: 35vh;
+          left: 15vh;
+          position: absolute;
           z-index: 100;
+          pointer-events: auto;
+          flex-direction: column;
         "
       >
-<!--         <p>
+        <!--         <p>
           Double click and drag to add!
         </p> -->
         <img

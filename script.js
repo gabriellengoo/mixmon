@@ -378,6 +378,7 @@ function selectCurrentModel() {
   }
 }
 
+
 function getFirstTexture(model) {
   let tex = null;
   model.traverse((child) => {
@@ -388,11 +389,6 @@ function getFirstTexture(model) {
   return tex;
 }
 
-// const brushImage = new Image();
-// brushImage.src = 'https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/istockphoto-488817190-612x612.jpg?v=1749585915365'; // make sure the path is correct
-// brushImage.onload = () => {
-//   console.log("Brush image loaded!");
-// };
 
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -450,12 +446,7 @@ function setupPaintTool(targetMesh) {
     }
   });
 
-  // Cursor change and instructions
-  // let alertDiv = document.getElementById("canvas-alert");
-  // if (!alertDiv) {
-  //   alertDiv = document.createElement("div");
-  //   alertDiv.id = "canvas-alert";
-  //   Object.assign(alertDiv.style, {
+
   canvas.style.cursor = "crosshair";
   const info = document.createElement("div");
   info.textContent =
@@ -479,22 +470,62 @@ function setupPaintTool(targetMesh) {
 }
 
 // Common paint handlers
-canvas.addEventListener("pointerdown", (evt) => {
+function getEventPosition(e) {
+  if (e.touches && e.touches.length > 0) {
+    return {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+    };
+  } else {
+    return {
+      x: e.clientX,
+      y: e.clientY,
+    };
+  }
+}
+
+function handleDown(e) {
   if (!currentPaintMesh) return;
   painting = true;
   controls.enabled = false;
-  updateMouse(evt);
+
+  const pos = getEventPosition(e);
+  updateMouseCoords(pos.x, pos.y);
   paintOnModel();
-});
-canvas.addEventListener("pointermove", (evt) => {
+
+  e.preventDefault(); // prevent page scroll on touch
+}
+
+function handleMove(e) {
   if (!painting) return;
-  updateMouse(evt);
+
+  const pos = getEventPosition(e);
+  updateMouseCoords(pos.x, pos.y);
   paintOnModel();
-});
-canvas.addEventListener("pointerup", () => {
+
+  e.preventDefault();
+}
+
+function handleUp(e) {
   painting = false;
   controls.enabled = true;
-});
+}
+
+function updateMouseCoords(clientX, clientY) {
+  const r = canvas.getBoundingClientRect();
+  mouse.x = ((clientX - r.left) / r.width) * 2 - 1;
+  mouse.y = -((clientY - r.top) / r.height) * 2 + 1;
+}
+
+// Add listeners for both mouse and touch
+canvas.addEventListener("mousedown", handleDown);
+canvas.addEventListener("mousemove", handleMove);
+canvas.addEventListener("mouseup", handleUp);
+
+canvas.addEventListener("touchstart", handleDown, { passive: false });
+canvas.addEventListener("touchmove", handleMove, { passive: false });
+canvas.addEventListener("touchend", handleUp);
+
 
 // Helper: compute normalized mouse coords
 function updateMouse(e) {
@@ -592,7 +623,7 @@ function showMixedModelUI() {
 
   // Show textures, email, and sky buttons
   console.log("Showing gifs...");
-  gifThumbnails.style.display = "inline-block";
+  gifThumbnails.style.display = "flex";
   texturesDiv.style.display = "flex";
   emailBtn.style.display = "inline-block";
   skyBtn.style.display = "inline-block";
@@ -624,12 +655,6 @@ function clearMixedModelUI() {
   userEmail.style.display = "none";
   gifThumbnails.style.display = "none";
 }
-
-// emailBtn.addEventListener("click", () => {
-//   // Implement your email sending logic here
-//   // Once done, clear mixed model UI:
-//   clearMixedModelUI();
-// });
 
 emailBtn.addEventListener("click", async () => {
   // 1. Get canvas screenshot
