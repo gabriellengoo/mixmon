@@ -234,6 +234,9 @@ function updateThumbnailBorder(index) {
 
 const addedSprites = [];
 
+let selectedSprite = null;
+
+// Add sprite on gif click
 document.querySelectorAll(".gif-thumb").forEach((gifThumb) => {
   gifThumb.addEventListener("click", function () {
     const gifURL = gifThumb.src;
@@ -247,12 +250,110 @@ document.querySelectorAll(".gif-thumb").forEach((gifThumb) => {
 
       scene.add(sprite);
       makeSpriteDraggable(sprite);
-
+      sprite.userData.scalable = true;
       addedSprites.push(sprite);
-      console.log("Added sprite:", sprite);
+
+      addScalableHint(sprite); // <- Adds the label/hint
     });
   });
 });
+
+// Mouse down: detect selected sprite
+renderer.domElement.addEventListener("mousedown", (event) => {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(scene.children);
+
+  for (const intersect of intersects) {
+    if (intersect.object.userData.draggable) {
+      draggingSprite = intersect.object;
+      selectedSprite = intersect.object; // store for scaling
+      draggingSprite.userData.dragging = true;
+      break;
+    }
+  }
+});
+
+renderer.domElement.addEventListener("mouseup", () => {
+  if (draggingSprite) {
+    draggingSprite.userData.dragging = false;
+    draggingSprite = null;
+  }
+});
+
+// Scale sprite using mouse wheel when selected
+renderer.domElement.addEventListener("wheel", (event) => {
+  if (selectedSprite && selectedSprite.userData.scalable) {
+    const scaleFactor = 1 + event.deltaY * -0.001;
+    selectedSprite.scale.multiplyScalar(scaleFactor);
+  }
+});
+
+
+
+renderer.domElement.addEventListener("touchstart", (event) => {
+  if (event.touches.length === 2 && selectedSprite) {
+    const dx = event.touches[0].clientX - event.touches[1].clientX;
+    const dy = event.touches[0].clientY - event.touches[1].clientY;
+    initialPinchDistance = Math.hypot(dx, dy);
+  }
+});
+
+renderer.domElement.addEventListener("touchmove", (event) => {
+  if (event.touches.length === 2 && selectedSprite && initialPinchDistance !== null) {
+    const dx = event.touches[0].clientX - event.touches[1].clientX;
+    const dy = event.touches[0].clientY - event.touches[1].clientY;
+    const currentDistance = Math.hypot(dx, dy);
+
+    const scaleFactor = currentDistance / initialPinchDistance;
+
+    selectedSprite.scale.multiplyScalar(scaleFactor);
+    initialPinchDistance = currentDistance;
+  }
+});
+
+renderer.domElement.addEventListener("touchend", () => {
+  initialPinchDistance = null;
+});
+
+// Add a small floating dot or label to indicate scaling
+function addScalableHint(sprite) {
+  const hint = document.createElement("div");
+  hint.textContent = "⇕";
+  hint.style.position = "absolute";
+  hint.style.fontSize = "20px";
+  hint.style.color = "white";
+  hint.style.fontWeight = "bold";
+  hint.style.pointerEvents = "none";
+  hint.style.zIndex = 1000;
+  document.body.appendChild(hint);
+
+  // Update hint position each frame
+  const update = () => {
+    if (!scene.children.includes(sprite)) {
+      hint.remove();
+      return;
+    }
+
+    const vector = sprite.position.clone().project(camera);
+    const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
+
+    hint.style.left = `${x}px`;
+    hint.style.top = `${y - 30}px`;
+
+    requestAnimationFrame(update);
+  };
+  update();
+}
+
+// Make sprite draggable
+function makeSpriteDraggable(sprite) {
+  sprite.userData.draggable = true;
+}
+
 
 function getTouchPos(touch) {
   return {
@@ -650,7 +751,8 @@ function setupPaintTool(targetMesh) {
     }
   });
 
-  canvas.style.cursor = "crosshair";
+canvas.style.cursor = "url(https://cdn.custom-cursor.com/db/cursor/32/Disney_Hand_cursor.png), default";
+
   const info = document.createElement("div");
   info.textContent =
     "Paint mode: click + drag. Double click/tap and drag gifs to add - pinch to enlarge!";
