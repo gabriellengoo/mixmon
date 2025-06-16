@@ -257,6 +257,68 @@
       canvas {
         touch-action: none; /* Prevents browser gestures like zoom/pan */
       }
+      .popup {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.75);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      }
+
+      .popup-content {
+        background: linear-gradient(135deg, #fff3d4, #c3f0ff);
+        border: 6px dashed #8e44ad;
+        border-radius: 20px;
+        padding: 2rem;
+        width: 90%;
+        max-width: 500px;
+        text-align: center;
+/*         font-family: "Comic Sans MS", "Chalkboard SE", sans-serif; */
+            font-family: monospace;
+        box-shadow: 0 0 20px #ff9ff3;
+        color: #222;
+        position: relative;
+        animation: popIn 0.4s ease;
+      }
+
+      .popup h2 {
+        font-size: 1.8rem;
+        margin-bottom: 1rem;
+      }
+
+      .popup p {
+        margin: 0.6rem 0;
+        font-size: 1rem;
+      }
+
+      .popup-close {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        background: #ff6b81;
+        border: none;
+        color: white;
+        font-size: 1.4rem;
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 0 10px #f5a;
+      }
+
+      @keyframes popIn {
+        from {
+          transform: scale(0.6);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
     </style>
 
     <!-- Libraries -->
@@ -272,6 +334,29 @@
     <canvas id="myCanvas"></canvas>
 
     <!--     <div class="fade-text">MONSTER MIXER</div> -->
+    <div id="intro-popup" class="popup">
+      <div class="popup-content">
+        <button class="popup-close" id="close-intro">×</button>
+        <h2>👾 Welcome Explorer!</h2>
+        <p>
+          <strong>A project by Hervisions for HEK and HEK Education</strong> in
+          response to the <em>Other Intelligences</em> exhibition.
+        </p>
+        <p>
+          🌿 A mix of <strong>plant</strong>, 🌌 <strong>cosmic</strong>, and 👽
+          <strong>alien intelligences</strong> where the material bends the
+          immaterial.
+        </p>
+        <p>
+          🧪 Creatures created through workshops during the last few months.
+        </p>
+        <p>
+          <strong>Explore new creatures</strong> by using the <em>mixer</em> to
+          create your own hybrid!
+        </p>
+        <p>🎉 Have fun!</p>
+      </div>
+    </div>
 
     <div
       id="ui"
