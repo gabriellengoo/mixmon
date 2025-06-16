@@ -17,8 +17,21 @@
         font-family: Helvetica, sans-serif;
         background: black;
         color: white;
+            cursor: url(https://cdn.custom-cursor.com/db/7918/32/starter-gentle-glow-cursor.png), default !important;
       }
 
+      a{
+            cursor: url(https://cdn.custom-cursor.com/db/7918/32/starter-gentle-glow-cursor.png), default !important;
+      }
+      
+      button{
+            cursor: url(https://cdn.custom-cursor.com/db/7918/32/starter-gentle-glow-cursor.png), default !important;
+      }
+      
+      img{
+            cursor: url(https://cdn.custom-cursor.com/db/7918/32/starter-gentle-glow-cursor.png), default !important;
+      }
+      
       #myCanvas {
         width: 100vw;
         height: 100vh;
@@ -118,19 +131,14 @@
         cursor: pointer;
         transition: all 0.3s ease;
         padding: 10px;
-        background: linear-gradient(
-          to bottom,
-          #d3d3d3,
-          #a9a9a9
-        ); /* light to dark gradient */
-        border: 1px solid #4a5764;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4),
-          /* main shadow */ inset 0 1px 0 white,
-          /* inner top highlight */ inset 0 -1px 0 #888; /* inner bottom shading */
+        background: linear-gradient(120deg, #ffe2f2 0%, #b5dfff 100%);
+        border: 1px solid rgb(255 253 0);
+        box-shadow: 0 0 20px 6px rgba(255, 214, 240, 0.6),
+          0 2px 12px 3px rgba(181, 223, 255, 0.3333333333), 0 0 2px 0 #fff;
         pointer-events: auto;
         border-radius: 4px;
         font-weight: bold;
-        color: #333;
+        color: rgb(255 253 0);
       }
 
       .arrows:hover {
@@ -156,7 +164,7 @@
       #emailBtn,
       #skyBtn {
         padding: 8px 16px;
-        /*         background: #005f99; */
+        /* background: #005f99; */
         width: 100%;
         color: #fff;
         border: none;
@@ -164,12 +172,17 @@
         cursor: pointer;
         font-size: 3.5vw;
         text-transform: uppercase;
-        /*         border: 1px solid black; */
-        /*         font-family: Verdana, sans-serif; */
+        /* border: 1px solid black; */
+        font-family: monospace;
+        color: #fff;
+        /* font-size: 4em; */
+        text-align: center;
+        letter-spacing: 0.07em;
+        /* font-family: "Chicle", serif; */
+        text-shadow: 0 0 18px rgba(255, 226, 242, 0.8),
+          0 0 34px rgba(181, 223, 255, 0.4), 0 0 4px #fff, 0 0 1px #fff;
       }
-      /*       #skyBtn {
-        border-bottom: 0px solid black;
-      } */
+
       @keyframes tiltFloat {
         0% {
           transform: rotate(0deg) translateY(0px);
@@ -192,6 +205,7 @@
       #emailBtn:hover,
       #skyBtn:hover {
         color: yellow;
+        /*         background: linear-gradient(120deg, rgb(255 253 0) 0%, rgb(181, 223, 255) 100%); */
         animation: tiltFloat 1.2s ease-in-out infinite;
         animation-fill-mode: forwards;
         /* Optional: smoother transition for background or other props */
@@ -271,19 +285,28 @@
       }
 
       .popup-content {
-        background: linear-gradient(135deg, #fff3d4, #c3f0ff);
-        border: 6px dashed #8e44ad;
+        background: linear-gradient(120deg, #ffe2f2 0%, #b5dfff 100%);
+        /*         border: 6px dashed #8e44ad; */
+        /*         opacity: .9; */
         border-radius: 20px;
         padding: 2rem;
         width: 90%;
         max-width: 500px;
         text-align: center;
-/*         font-family: "Comic Sans MS", "Chalkboard SE", sans-serif; */
-            font-family: monospace;
+        /*         font-family: "Comic Sans MS", "Chalkboard SE", sans-serif; */
+        font-family: monospace;
+
         box-shadow: 0 0 20px #ff9ff3;
         color: #222;
         position: relative;
         animation: popIn 0.4s ease;
+        color: #fff;
+        font-size: 4em;
+        text-align: center;
+        letter-spacing: 0.07em;
+        font-family: "Chicle", serif;
+        text-shadow: 0 0 18px rgba(255, 226, 242, 0.8),
+          0 0 34px rgba(181, 223, 255, 0.4), 0 0 4px #fff, 0 0 1px #fff;
       }
 
       .popup h2 {
@@ -300,13 +323,41 @@
         position: absolute;
         top: 10px;
         right: 15px;
-        background: #ff6b81;
+        /* background: #ff6b81; */
         border: none;
         color: white;
-        font-size: 1.4rem;
+        /*     font-size: 1rem; */
         border-radius: 50%;
         cursor: pointer;
-        box-shadow: 0 0 10px #f5a;
+        padding: 0;
+      }
+
+      #selectModelBtn:hover {
+        background: linear-gradient(
+          120deg,
+          rgb(255 253 0) 0%,
+          rgb(181, 223, 255) 100%
+        );
+      }
+
+      .popup-close img {
+        background: linear-gradient(120deg, #ffe2f2 0%, #b5dfff 100%);
+        border: none;
+        border-radius: 50%;
+        box-shadow: 0 0 20px 6px rgba(255, 214, 240, 85%),
+          0 2px 12px 3px rgba(181, 223, 255, 85%), 0 0 2px 0 #fff;
+        cursor: pointer;
+        opacity: 0.93;
+        outline: none;
+        padding: 0.18em;
+        transition: background 0.18s, transform 0.18s, box-shadow 0.22s;
+        overflow: hidden;
+        user-select: none;
+        display: inline-block;
+        vertical-align: middle;
+        filter: drop-shadow(0 0 12px rgba(255, 226, 242, 0.6666666667))
+          drop-shadow(0 0 24px rgba(181, 223, 255, 0.5333333333));
+        transition: filter 0.22s;
       }
 
       @keyframes popIn {
@@ -336,8 +387,13 @@
     <!--     <div class="fade-text">MONSTER MIXER</div> -->
     <div id="intro-popup" class="popup">
       <div class="popup-content">
-        <button class="popup-close" id="close-intro">×</button>
-        <h2>👾 Welcome Explorer!</h2>
+        <button class="popup-close" id="close-intro">
+          <img
+            style="width: 3vw"
+            src="https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/circle-close-multiple-svgrepo-com%20(2).png?v=1750078257096"
+          />
+        </button>
+        <h2>Welcome Explorer!</h2>
         <p>
           <strong>A project by Hervisions for HEK and HEK Education</strong> in
           response to the <em>Other Intelligences</em> exhibition.
@@ -354,7 +410,20 @@
           <strong>Explore new creatures</strong> by using the <em>mixer</em> to
           create your own hybrid!
         </p>
-        <p>🎉 Have fun!</p>
+        <p
+          style="
+            display: flex;
+            pointer-events: auto;
+            justify-content: center;
+            align-items: center;
+          "
+        >
+          <img
+            src="https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/09-unscreen.gif?v=1750076840280"
+            class="gif-thumb"
+          />
+          Have fun!
+        </p>
       </div>
     </div>
 
@@ -477,7 +546,7 @@
       </div>
       <button
         id="selectModelBtn"
-        class="bounce"
+        class="select"
         style="
           padding: 8px 16px;
           font-family: monospace;
@@ -486,19 +555,14 @@
           text-transform: uppercase;
           background: lightgrey;
           color: yellow;
-          background: linear-gradient(
-            to bottom,
-            #d3d3d3,
-            #a9a9a9
-          ); /* light to dark gradient */
-          border: 1px solid #4a5764;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4),
-            /* main shadow */ inset 0 1px 0 white,
-            /* inner top highlight */ inset 0 -1px 0 #888; /* inner bottom shading */
+          background: linear-gradient(120deg, #ffe2f2 0%, #b5dfff 100%);
+          border: 1px solid yellow;
+          box-shadow: 0 0 20px 6px rgba(255, 214, 240, 0.6),
+            0 2px 12px 3px rgba(181, 223, 255, 0.3333333333), 0 0 2px 0 #fff;
           pointer-events: auto;
           border-radius: 4px;
           font-weight: bold;
-          color: #333;
+          color: yellow;
         "
       >
         Select
