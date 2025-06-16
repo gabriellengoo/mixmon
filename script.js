@@ -58,22 +58,49 @@ shadowPlane.rotation.x = -Math.PI / 2;
 shadowPlane.position.y = -1.25;
 shadowPlane.receiveShadow = true;
 scene.add(shadowPlane);
-
 const loaderCube = new THREE.CubeTextureLoader();
-const skyTexture = loaderCube.load([
+
+// First skybox (your original)
+const skybox1 = [
   "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/posx.png?v=1749559818084",
   "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/negx.png?v=1749559829037",
   "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/posy.png?v=1749559810915",
   "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/negy.png?v=1749559825078",
   "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/posz.png?v=1749559793037",
   "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/negz.png?v=1749559820856",
-]);
+];
 
-// skyTexture.encoding = THREE.sRGBEncoding; // Ensures correct color output
-skyTexture.magFilter = THREE.LinearFilter; // Smoother magnification
-skyTexture.minFilter = THREE.LinearMipMapLinearFilter; // Better minification filter
+// Second skybox (a different one, you can replace this with your own)
+const skybox2 = [
+  "https://gsp.humboldt.edu/Archive/Libraries/ThreeJS/4.5/examples/textures/cube/skybox/px.jpg",
+  "https://gsp.humboldt.edu/Archive/Libraries/ThreeJS/4.5/examples/textures/cube/skybox/nx.jpg",
+  "https://gsp.humboldt.edu/Archive/Libraries/ThreeJS/4.5/examples/textures/cube/skybox/py.jpg",
+  "https://gsp.humboldt.edu/Archive/Libraries/ThreeJS/4.5/examples/textures/cube/skybox/ny.jpg",
+  "https://gsp.humboldt.edu/Archive/Libraries/ThreeJS/4.5/examples/textures/cube/skybox/pz.jpg",
+  "https://gsp.humboldt.edu/Archive/Libraries/ThreeJS/4.5/examples/textures/cube/skybox/nz.jpg",
+];
 
+// Store skyboxes in an array to cycle
+const skyboxes = [skybox1, skybox2];
+let currentSkyIndex = 0;
+
+// Load initial skybox
+let skyTexture = loaderCube.load(skyboxes[currentSkyIndex]);
+skyTexture.magFilter = THREE.LinearFilter;
+skyTexture.minFilter = THREE.LinearMipMapLinearFilter;
 scene.background = skyTexture;
+
+// Handle button click
+// document.getElementById("skyBtn").style.display = "block";
+document.getElementById("skyBtn").addEventListener("click", () => {
+  currentSkyIndex = (currentSkyIndex + 1) % skyboxes.length;
+
+  const newSky = loaderCube.load(skyboxes[currentSkyIndex]);
+  newSky.magFilter = THREE.LinearFilter;
+  newSky.minFilter = THREE.LinearMipMapLinearFilter;
+
+  scene.background = newSky;
+});
 
 function blendTextures(tex1, tex2) {
   const canvas = document.createElement("canvas");
@@ -163,8 +190,10 @@ modelThumbs.forEach((src, index) => {
   modelThumbnails.appendChild(img);
 });
 
-function makeSpriteDraggable(sprite) {
-  sprite.userData.draggable = true;
+function hideAllCarouselModels() {
+  carouselModels.forEach(({ model }) => {
+    model.visible = false;
+  });
 }
 
 function updateThumbnailBorder(index) {
@@ -186,50 +215,176 @@ function updateThumbnailBorder(index) {
 // Call this when your mixed model appears
 // showGIFThumbnails();
 
-// Make GIF draggable when clicked
+const addedSprites = [];
+
 document.querySelectorAll(".gif-thumb").forEach((gifThumb) => {
-  gifThumb.addEventListener("click", function (e) {
+  gifThumb.addEventListener("click", function () {
     const gifURL = gifThumb.src;
 
-    // Load GIF as texture
     const texture = new THREE.TextureLoader().load(gifURL, () => {
       const material = new THREE.SpriteMaterial({ map: texture });
       const sprite = new THREE.Sprite(material);
 
-      // Set size and position (adjust as needed)
-      sprite.scale.set(0.5, 0.5, 0.5); // or (width, height, 1)
-      sprite.position.set(-1, 0, 0); // center, or use your own logic
+      sprite.scale.set(0.5, 0.5, 0.5);
+      sprite.position.set(-1, 0, 0);
 
-      // Add to scene
       scene.add(sprite);
-
       makeSpriteDraggable(sprite);
+
+      addedSprites.push(sprite);
+      console.log("Added sprite:", sprite);
     });
   });
 });
 
-let draggableSprite = null;
+function getTouchPos(touch) {
+  return {
+    x: (touch.clientX / window.innerWidth) * 2 - 1,
+    y: -(touch.clientY / window.innerHeight) * 2 + 1,
+  };
+}
 
+draggingSprite = null;
+let isPinching = false;
+let initialPinchDistance = 0;
+let initialRotation = 0;
+let initialScale = 1;
+let initialAngle = 0;
+
+
+
+// For mouse rotation
+let isRotating = false;
+let lastMousePos = { x: 0, y: 0 };
+
+// ----- MOUSE EVENTS -----
+
+// Left click drag = move
 renderer.domElement.addEventListener("mousedown", (event) => {
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  if (event.button === 0) {  // Left button
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-  raycaster.setFromCamera(mouse, camera);
-  const intersects = raycaster.intersectObjects(scene.children);
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(scene.children);
 
-  for (const intersect of intersects) {
-    if (intersect.object.userData.draggable) {
-      draggingSprite = intersect.object;
-      draggingSprite.userData.dragging = true;
-      break;
+    for (const intersect of intersects) {
+      if (intersect.object.userData.draggable) {
+        draggingSprite = intersect.object;
+        draggingSprite.userData.dragging = true;
+        break;
+      }
+    }
+  } else if (event.button === 2) { // Right button = rotate
+    if (draggingSprite) {
+      isRotating = true;
+      lastMousePos.x = event.clientX;
+      lastMousePos.y = event.clientY;
     }
   }
 });
 
+// Mouse move for dragging or rotating
 renderer.domElement.addEventListener("mousemove", (event) => {
-  if (draggingSprite && draggingSprite.userData.dragging) {
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  if (draggingSprite) {
+    if (draggingSprite.userData.dragging) {
+      // Dragging logic (move)
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const planeZ = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+      const intersection = new THREE.Vector3();
+      raycaster.ray.intersectPlane(planeZ, intersection);
+
+      draggingSprite.position.copy(intersection);
+    } else if (isRotating) {
+      // Rotation logic (right button drag)
+      const deltaX = event.clientX - lastMousePos.x;
+      const rotationSpeed = 0.01; // adjust rotation sensitivity
+
+      draggingSprite.rotation.z += deltaX * rotationSpeed;
+
+      lastMousePos.x = event.clientX;
+      lastMousePos.y = event.clientY;
+    }
+  }
+});
+
+// Mouse up ends drag or rotation
+renderer.domElement.addEventListener("mouseup", (event) => {
+  if (draggingSprite) {
+    draggingSprite.userData.dragging = false;
+    draggingSprite = null;
+  }
+  isRotating = false;
+});
+
+// Disable context menu on right click so right-button drag works smoothly
+renderer.domElement.addEventListener("contextmenu", (e) => {
+  e.preventDefault();
+});
+
+// Mouse wheel for scaling
+renderer.domElement.addEventListener("wheel", (event) => {
+  if (draggingSprite) {
+    event.preventDefault();
+    const scaleAmount = 1 - event.deltaY * 0.001; // zoom sensitivity
+    draggingSprite.scale.multiplyScalar(scaleAmount);
+
+    // Optional limits
+    draggingSprite.scale.clampScalar(0.1, 5);
+  }
+}, { passive: false });
+
+// ----- TOUCH EVENTS -----
+
+renderer.domElement.addEventListener("touchstart", (event) => {
+  if (event.touches.length === 1) {
+    const touch = event.touches[0];
+    mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(scene.children);
+
+    for (const intersect of intersects) {
+      if (intersect.object.userData.draggable) {
+        draggingSprite = intersect.object;
+        draggingSprite.userData.dragging = true;
+        break;
+      }
+    }
+  } else if (event.touches.length === 2 && draggingSprite) {
+    isPinching = true;
+    const dx = event.touches[0].clientX - event.touches[1].clientX;
+    const dy = event.touches[0].clientY - event.touches[1].clientY;
+    initialPinchDistance = Math.hypot(dx, dy);
+    initialAngle = Math.atan2(dy, dx);
+    initialScale = draggingSprite.scale.x; // uniform scale
+    initialRotation = draggingSprite.rotation.z;
+  }
+});
+
+renderer.domElement.addEventListener("touchmove", (event) => {
+  if (isPinching && draggingSprite && event.touches.length === 2) {
+    const dx = event.touches[0].clientX - event.touches[1].clientX;
+    const dy = event.touches[0].clientY - event.touches[1].clientY;
+    const currentDistance = Math.hypot(dx, dy);
+    const currentAngle = Math.atan2(dy, dx);
+
+    // Scale
+    const scaleFactor = currentDistance / initialPinchDistance;
+    draggingSprite.scale.setScalar(initialScale * scaleFactor);
+
+    // Rotate
+    const angleDelta = currentAngle - initialAngle;
+    draggingSprite.rotation.z = initialRotation + angleDelta;
+  } else if (draggingSprite && draggingSprite.userData.dragging && event.touches.length === 1) {
+    // single finger drag
+    const touch = event.touches[0];
+    mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
     const planeZ = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
@@ -240,12 +395,19 @@ renderer.domElement.addEventListener("mousemove", (event) => {
   }
 });
 
-renderer.domElement.addEventListener("mouseup", () => {
+renderer.domElement.addEventListener("touchend", () => {
   if (draggingSprite) {
     draggingSprite.userData.dragging = false;
-    draggingSprite = null;
   }
+  draggingSprite = null;
+  isPinching = false;
 });
+
+
+
+function makeSpriteDraggable(sprite) {
+  sprite.userData.draggable = true;
+}
 
 async function loadModel(url) {
   return new Promise((resolve) => {
@@ -270,10 +432,10 @@ async function loadModel(url) {
         const scaledSize = scaledBox.getSize(new THREE.Vector3());
         const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
 
-        // Center model on X and Z, but base-align on Y
+        // Center model on X and Z, base-align Y
         model.position.x = -scaledCenter.x;
         model.position.z = -scaledCenter.z;
-        model.position.y = -scaledBox.min.y; // align bottom to y = 0
+        model.position.y = -scaledBox.min.y;
 
         model.traverse((child) => {
           if (child.isMesh) {
@@ -289,6 +451,8 @@ async function loadModel(url) {
         mixers.push(thisMixer);
 
         scene.add(model);
+        // mixedModels.push(model); // ✅ ← Track for later removal**
+
         resolve({ model, url, animations: gltf.animations });
       },
       undefined,
@@ -315,9 +479,12 @@ async function loadBaseModels() {
 }
 
 function showModel(index) {
-  if (currentModel && selectedModels.length < 2) currentModel.visible = false; // only hide carousel previews, not mixed models
+  if (currentModel) {
+    currentModel.visible = false; // hide previous
+  }
   currentModel = carouselModels[index].model;
   currentModel.visible = true;
+  currentIndex = index;
 }
 
 // Show alert inside canvas container (simple overlay div)
@@ -361,23 +528,44 @@ function selectCurrentModel() {
     showCanvasAlert("Already selected!");
     return;
   }
+
   selectedModels.push(selected);
   showCanvasAlert(`Model selected (${selectedModels.length}/2)`);
 
   if (selectedModels.length === 2) {
-    // Hide the carousel preview model (currentModel)
+    // Hide carousel preview
     if (currentModel) currentModel.visible = false;
 
+    // Show mixed model using current selectedModels
     showMixedModel();
 
-    // Reset selection for next round
-    selectedModels = [];
+    // Hide or disable UI until mixed model closes
+    document.getElementById("ui").classList.add("hidden");
 
-    // Show UI again for another round
-    document.getElementById("ui").classList.remove("hidden");
+    // Do NOT reset selectedModels here
   }
 }
 
+// Then, when the user closes the mixed model or resets UI:
+function clearMixedModelUI() {
+  // remove mixed model from scene, etc
+  mixedModelActive = false;
+
+  mixedModels.forEach((model) => scene.remove(model));
+  mixedModels.length = 0;
+
+  // Hide all carousel models
+  hideAllCarouselModels();
+
+  currentModel = null;
+  currentIndex = null;
+
+  // Reset selected models for next round
+  selectedModels = [];
+
+  // Show UI again
+  document.getElementById("ui").classList.remove("hidden");
+}
 
 function getFirstTexture(model) {
   let tex = null;
@@ -389,7 +577,6 @@ function getFirstTexture(model) {
   return tex;
 }
 
-
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
@@ -397,7 +584,7 @@ const textureLoader = new THREE.TextureLoader();
 
 const textures = {
   plastic: textureLoader.load(
-    "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/textur-kristina-paukshtite-1998922.jpg?v=1749667583075"
+    "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/istockphoto-1441424557-612x612.jpg?v=1749766516815"
   ),
   plants: textureLoader.load(
     "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/Best-Colorful-Houseplants-FB.jpg?v=1749667692340"
@@ -446,11 +633,10 @@ function setupPaintTool(targetMesh) {
     }
   });
 
-
   canvas.style.cursor = "crosshair";
   const info = document.createElement("div");
   info.textContent =
-    "Paint mode: click + drag. Double click/tap and drag gifs to add!";
+    "Paint mode: click + drag. Double click/tap and drag gifs to add - pinch to enlarge!";
   Object.assign(info.style, {
     position: "absolute",
     padding: "10px 20px",
@@ -525,7 +711,6 @@ canvas.addEventListener("mouseup", handleUp);
 canvas.addEventListener("touchstart", handleDown, { passive: false });
 canvas.addEventListener("touchmove", handleMove, { passive: false });
 canvas.addEventListener("touchend", handleUp);
-
 
 // Helper: compute normalized mouse coords
 function updateMouse(e) {
@@ -636,24 +821,25 @@ function showMixedModelUI() {
 function clearMixedModelUI() {
   mixedModelActive = false;
 
-  // 🧽 Remove all mixed models from the scene
   mixedModels.forEach((model) => scene.remove(model));
-  mixedModels.length = 0; // clear the array
+  mixedModels.length = 0;
 
-  // Reset UI
+  hideAllCarouselModels();
+
+  currentModel = null;
+  currentIndex = null;
+
   modelThumbnails.style.display = "flex";
-  // selectModelBtn.disabled = false;
   selectModelBtn.style.display = "inline-block";
   selectModelBtn.style.pointerEvents = "auto";
   selectModelBtn.style.opacity = "1";
   rightArrow.style.display = "inline-block";
   leftArrow.style.display = "inline-block";
-
+  gifThumbnails.style.display = "none";
   texturesDiv.style.display = "none";
   emailBtn.style.display = "none";
   skyBtn.style.display = "none";
   userEmail.style.display = "none";
-  gifThumbnails.style.display = "none";
 }
 
 emailBtn.addEventListener("click", async () => {
@@ -725,6 +911,7 @@ emailBtn.addEventListener("click", async () => {
     qr.style.background = "#fafafa";
 
     // Close button
+    // Close button
     const closeBtn = document.createElement("button");
     closeBtn.textContent = "Close";
     closeBtn.style.fontSize = "1.3vw";
@@ -735,7 +922,25 @@ emailBtn.addEventListener("click", async () => {
     closeBtn.style.color = "white";
     closeBtn.style.borderRadius = "6px";
     closeBtn.style.cursor = "pointer";
-    closeBtn.onclick = () => popup.remove();
+
+//     closeBtn.onclick = () => {
+//       console.log("Close clicked. Removing sprites:", addedSprites.length);
+//       popup.remove();
+//       clearMixedModelUI();
+
+//       addedSprites.forEach((sprite) => {
+//         scene.remove(sprite);
+//         if (sprite.material.map) sprite.material.map.dispose();
+//         sprite.material.dispose();
+//         sprite.geometry?.dispose?.();
+//       });
+
+//       addedSprites.length = 0;
+//       draggingSprite = null; // ✅ reset reference to removed sprite
+//     };
+    closeBtn.onclick = () => {
+  location.reload(); // 🔄 Reloads the page completely
+};
 
     popup.appendChild(img);
     popup.appendChild(document.createElement("br"));
@@ -782,6 +987,9 @@ function showMixedModel() {
     });
   }
 
+  // Optionally reset selection
+  selectedModels = []; // ← important if you want it to work again
+
   scene.add(baseModel);
   mixedModels.push(baseModel);
 
@@ -801,6 +1009,37 @@ function showMixedModel() {
 
   updateTextureButtonsVisibility();
   showMixedModelUI();
+}
+
+function hideAllModels() {
+  [...baseModels, ...carouselModels].forEach(({ model }) => {
+    model.visible = false;
+  });
+}
+
+function resetSelection() {
+  selectedModels = [];
+
+  [...baseModels, ...carouselModels].forEach(({ model }) => {
+    model.visible = false;
+  });
+
+  [...modelThumbnails.children].forEach((img) => {
+    img.classList.remove("highlighted");
+  });
+
+  if (mixedModel) {
+    mixedModel.visible = false;
+  }
+
+  clearGifSprites();
+}
+
+function handleModelSelection(model) {
+  selectedModels.push(model);
+  if (selectedModels.length === 2) {
+    showMixedModel(); // or whatever your mixing logic is
+  }
 }
 
 async function init() {
