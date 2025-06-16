@@ -1,3 +1,21 @@
+
+function showIntroPopup() {
+  document.getElementById("intro-popup").style.display = "flex";
+}
+
+function hideIntroPopup() {
+  document.getElementById("intro-popup").style.display = "none";
+}
+
+document.getElementById("close-intro").addEventListener("click", () => {
+  hideIntroPopup();
+});
+
+// Show popup on page load
+window.addEventListener("load", showIntroPopup);
+
+
+
 let mixers = [];
 let mixedModels = []; // Store all mixed models added to scene
 
