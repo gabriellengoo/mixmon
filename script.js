@@ -7,7 +7,12 @@ let lastX, lastY;
 let paintTexture, paintCanvas, paintCtx;
 
 const canvas = document.getElementById("myCanvas");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: true,
+  antialias: true,
+  preserveDrawingBuffer: true,
+});
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.outputEncoding = THREE.sRGBEncoding;
@@ -53,22 +58,49 @@ shadowPlane.rotation.x = -Math.PI / 2;
 shadowPlane.position.y = -1.25;
 shadowPlane.receiveShadow = true;
 scene.add(shadowPlane);
-
 const loaderCube = new THREE.CubeTextureLoader();
-const skyTexture = loaderCube.load([
+
+// First skybox (your original)
+const skybox1 = [
   "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/posx.png?v=1749559818084",
   "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/negx.png?v=1749559829037",
   "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/posy.png?v=1749559810915",
   "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/negy.png?v=1749559825078",
   "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/posz.png?v=1749559793037",
   "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/negz.png?v=1749559820856",
-]);
+];
 
-// skyTexture.encoding = THREE.sRGBEncoding; // Ensures correct color output
-skyTexture.magFilter = THREE.LinearFilter; // Smoother magnification
-skyTexture.minFilter = THREE.LinearMipMapLinearFilter; // Better minification filter
+// Second skybox (a different one, you can replace this with your own)
+const skybox2 = [
+  "https://gsp.humboldt.edu/Archive/Libraries/ThreeJS/4.5/examples/textures/cube/skybox/px.jpg",
+  "https://gsp.humboldt.edu/Archive/Libraries/ThreeJS/4.5/examples/textures/cube/skybox/nx.jpg",
+  "https://gsp.humboldt.edu/Archive/Libraries/ThreeJS/4.5/examples/textures/cube/skybox/py.jpg",
+  "https://gsp.humboldt.edu/Archive/Libraries/ThreeJS/4.5/examples/textures/cube/skybox/ny.jpg",
+  "https://gsp.humboldt.edu/Archive/Libraries/ThreeJS/4.5/examples/textures/cube/skybox/pz.jpg",
+  "https://gsp.humboldt.edu/Archive/Libraries/ThreeJS/4.5/examples/textures/cube/skybox/nz.jpg",
+];
 
+// Store skyboxes in an array to cycle
+const skyboxes = [skybox1, skybox2];
+let currentSkyIndex = 0;
+
+// Load initial skybox
+let skyTexture = loaderCube.load(skyboxes[currentSkyIndex]);
+skyTexture.magFilter = THREE.LinearFilter;
+skyTexture.minFilter = THREE.LinearMipMapLinearFilter;
 scene.background = skyTexture;
+
+// Handle button click
+// document.getElementById("skyBtn").style.display = "block";
+document.getElementById("skyBtn").addEventListener("click", () => {
+  currentSkyIndex = (currentSkyIndex + 1) % skyboxes.length;
+
+  const newSky = loaderCube.load(skyboxes[currentSkyIndex]);
+  newSky.magFilter = THREE.LinearFilter;
+  newSky.minFilter = THREE.LinearMipMapLinearFilter;
+
+  scene.background = newSky;
+});
 
 function blendTextures(tex1, tex2) {
   const canvas = document.createElement("canvas");
@@ -128,7 +160,7 @@ modelThumbs.forEach((src, index) => {
   const img = document.createElement("img");
   img.src = src;
   img.style.width = "8vw";
-  img.style.height = "max-content";
+  // img.style.height = "8vh";
   img.style.cursor = "pointer";
   img.style.transition = "all 0.3s ease";
   img.style.padding = "10px";
@@ -158,6 +190,12 @@ modelThumbs.forEach((src, index) => {
   modelThumbnails.appendChild(img);
 });
 
+function hideAllCarouselModels() {
+  carouselModels.forEach(({ model }) => {
+    model.visible = false;
+  });
+}
+
 function updateThumbnailBorder(index) {
   [...modelThumbnails.children].forEach((img, i) => {
     if (i === index) {
@@ -172,6 +210,203 @@ function updateThumbnailBorder(index) {
       img.classList.remove("highlighted");
     }
   });
+}
+
+// Call this when your mixed model appears
+// showGIFThumbnails();
+
+const addedSprites = [];
+
+document.querySelectorAll(".gif-thumb").forEach((gifThumb) => {
+  gifThumb.addEventListener("click", function () {
+    const gifURL = gifThumb.src;
+
+    const texture = new THREE.TextureLoader().load(gifURL, () => {
+      const material = new THREE.SpriteMaterial({ map: texture });
+      const sprite = new THREE.Sprite(material);
+
+      sprite.scale.set(0.5, 0.5, 0.5);
+      sprite.position.set(-1, 0, 0);
+
+      scene.add(sprite);
+      makeSpriteDraggable(sprite);
+
+      addedSprites.push(sprite);
+      console.log("Added sprite:", sprite);
+    });
+  });
+});
+
+function getTouchPos(touch) {
+  return {
+    x: (touch.clientX / window.innerWidth) * 2 - 1,
+    y: -(touch.clientY / window.innerHeight) * 2 + 1,
+  };
+}
+
+draggingSprite = null;
+let isPinching = false;
+let initialPinchDistance = 0;
+let initialRotation = 0;
+let initialScale = 1;
+let initialAngle = 0;
+
+
+
+// For mouse rotation
+let isRotating = false;
+let lastMousePos = { x: 0, y: 0 };
+
+// ----- MOUSE EVENTS -----
+
+// Left click drag = move
+renderer.domElement.addEventListener("mousedown", (event) => {
+  if (event.button === 0) {  // Left button
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(scene.children);
+
+    for (const intersect of intersects) {
+      if (intersect.object.userData.draggable) {
+        draggingSprite = intersect.object;
+        draggingSprite.userData.dragging = true;
+        break;
+      }
+    }
+  } else if (event.button === 2) { // Right button = rotate
+    if (draggingSprite) {
+      isRotating = true;
+      lastMousePos.x = event.clientX;
+      lastMousePos.y = event.clientY;
+    }
+  }
+});
+
+// Mouse move for dragging or rotating
+renderer.domElement.addEventListener("mousemove", (event) => {
+  if (draggingSprite) {
+    if (draggingSprite.userData.dragging) {
+      // Dragging logic (move)
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const planeZ = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+      const intersection = new THREE.Vector3();
+      raycaster.ray.intersectPlane(planeZ, intersection);
+
+      draggingSprite.position.copy(intersection);
+    } else if (isRotating) {
+      // Rotation logic (right button drag)
+      const deltaX = event.clientX - lastMousePos.x;
+      const rotationSpeed = 0.01; // adjust rotation sensitivity
+
+      draggingSprite.rotation.z += deltaX * rotationSpeed;
+
+      lastMousePos.x = event.clientX;
+      lastMousePos.y = event.clientY;
+    }
+  }
+});
+
+// Mouse up ends drag or rotation
+renderer.domElement.addEventListener("mouseup", (event) => {
+  if (draggingSprite) {
+    draggingSprite.userData.dragging = false;
+    draggingSprite = null;
+  }
+  isRotating = false;
+});
+
+// Disable context menu on right click so right-button drag works smoothly
+renderer.domElement.addEventListener("contextmenu", (e) => {
+  e.preventDefault();
+});
+
+// Mouse wheel for scaling
+renderer.domElement.addEventListener("wheel", (event) => {
+  if (draggingSprite) {
+    event.preventDefault();
+    const scaleAmount = 1 - event.deltaY * 0.001; // zoom sensitivity
+    draggingSprite.scale.multiplyScalar(scaleAmount);
+
+    // Optional limits
+    draggingSprite.scale.clampScalar(0.1, 5);
+  }
+}, { passive: false });
+
+// ----- TOUCH EVENTS -----
+
+renderer.domElement.addEventListener("touchstart", (event) => {
+  if (event.touches.length === 1) {
+    const touch = event.touches[0];
+    mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(scene.children);
+
+    for (const intersect of intersects) {
+      if (intersect.object.userData.draggable) {
+        draggingSprite = intersect.object;
+        draggingSprite.userData.dragging = true;
+        break;
+      }
+    }
+  } else if (event.touches.length === 2 && draggingSprite) {
+    isPinching = true;
+    const dx = event.touches[0].clientX - event.touches[1].clientX;
+    const dy = event.touches[0].clientY - event.touches[1].clientY;
+    initialPinchDistance = Math.hypot(dx, dy);
+    initialAngle = Math.atan2(dy, dx);
+    initialScale = draggingSprite.scale.x; // uniform scale
+    initialRotation = draggingSprite.rotation.z;
+  }
+});
+
+renderer.domElement.addEventListener("touchmove", (event) => {
+  if (isPinching && draggingSprite && event.touches.length === 2) {
+    const dx = event.touches[0].clientX - event.touches[1].clientX;
+    const dy = event.touches[0].clientY - event.touches[1].clientY;
+    const currentDistance = Math.hypot(dx, dy);
+    const currentAngle = Math.atan2(dy, dx);
+
+    // Scale
+    const scaleFactor = currentDistance / initialPinchDistance;
+    draggingSprite.scale.setScalar(initialScale * scaleFactor);
+
+    // Rotate
+    const angleDelta = currentAngle - initialAngle;
+    draggingSprite.rotation.z = initialRotation + angleDelta;
+  } else if (draggingSprite && draggingSprite.userData.dragging && event.touches.length === 1) {
+    // single finger drag
+    const touch = event.touches[0];
+    mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const planeZ = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+    const intersection = new THREE.Vector3();
+    raycaster.ray.intersectPlane(planeZ, intersection);
+
+    draggingSprite.position.copy(intersection);
+  }
+});
+
+renderer.domElement.addEventListener("touchend", () => {
+  if (draggingSprite) {
+    draggingSprite.userData.dragging = false;
+  }
+  draggingSprite = null;
+  isPinching = false;
+});
+
+
+
+function makeSpriteDraggable(sprite) {
+  sprite.userData.draggable = true;
 }
 
 async function loadModel(url) {
@@ -197,10 +432,10 @@ async function loadModel(url) {
         const scaledSize = scaledBox.getSize(new THREE.Vector3());
         const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
 
-        // Center model on X and Z, but base-align on Y
+        // Center model on X and Z, base-align Y
         model.position.x = -scaledCenter.x;
         model.position.z = -scaledCenter.z;
-        model.position.y = -scaledBox.min.y; // align bottom to y = 0
+        model.position.y = -scaledBox.min.y;
 
         model.traverse((child) => {
           if (child.isMesh) {
@@ -216,6 +451,8 @@ async function loadModel(url) {
         mixers.push(thisMixer);
 
         scene.add(model);
+        // mixedModels.push(model); // ✅ ← Track for later removal**
+
         resolve({ model, url, animations: gltf.animations });
       },
       undefined,
@@ -242,9 +479,12 @@ async function loadBaseModels() {
 }
 
 function showModel(index) {
-  if (currentModel && selectedModels.length < 2) currentModel.visible = false; // only hide carousel previews, not mixed models
+  if (currentModel) {
+    currentModel.visible = false; // hide previous
+  }
   currentModel = carouselModels[index].model;
   currentModel.visible = true;
+  currentIndex = index;
 }
 
 // Show alert inside canvas container (simple overlay div)
@@ -288,21 +528,43 @@ function selectCurrentModel() {
     showCanvasAlert("Already selected!");
     return;
   }
+
   selectedModels.push(selected);
   showCanvasAlert(`Model selected (${selectedModels.length}/2)`);
 
   if (selectedModels.length === 2) {
-    // Hide the carousel preview model (currentModel)
+    // Hide carousel preview
     if (currentModel) currentModel.visible = false;
 
+    // Show mixed model using current selectedModels
     showMixedModel();
 
-    // Reset selection for next round
-    selectedModels = [];
+    // Hide or disable UI until mixed model closes
+    document.getElementById("ui").classList.add("hidden");
 
-    // Show UI again for another round
-    document.getElementById("ui").classList.remove("hidden");
+    // Do NOT reset selectedModels here
   }
+}
+
+// Then, when the user closes the mixed model or resets UI:
+function clearMixedModelUI() {
+  // remove mixed model from scene, etc
+  mixedModelActive = false;
+
+  mixedModels.forEach((model) => scene.remove(model));
+  mixedModels.length = 0;
+
+  // Hide all carousel models
+  hideAllCarouselModels();
+
+  currentModel = null;
+  currentIndex = null;
+
+  // Reset selected models for next round
+  selectedModels = [];
+
+  // Show UI again
+  document.getElementById("ui").classList.remove("hidden");
 }
 
 function getFirstTexture(model) {
@@ -315,14 +577,36 @@ function getFirstTexture(model) {
   return tex;
 }
 
-// const brushImage = new Image();
-// brushImage.src = 'https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/istockphoto-488817190-612x612.jpg?v=1749585915365'; // make sure the path is correct
-// brushImage.onload = () => {
-//   console.log("Brush image loaded!");
-// };
-
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+
+const textureLoader = new THREE.TextureLoader();
+
+const textures = {
+  plastic: textureLoader.load(
+    "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/istockphoto-1441424557-612x612.jpg?v=1749766516815"
+  ),
+  plants: textureLoader.load(
+    "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/Best-Colorful-Houseplants-FB.jpg?v=1749667692340"
+  ),
+  slime: textureLoader.load(
+    "https://cdn.glitch.global/71411a15-2fd2-431a-82d6-0aa1df09601b/triana-nana-VWyiLOKgsgM-unsplash-slime-600.jpg?v=1749667572394"
+  ),
+};
+
+let currentPaintTexture = textures.plastic; // default
+
+document.getElementById("plasticBtn").addEventListener("click", () => {
+  currentPaintTexture = textures.plastic;
+});
+
+document.getElementById("plantsBtn").addEventListener("click", () => {
+  currentPaintTexture = textures.plants;
+});
+
+document.getElementById("slimeBtn").addEventListener("click", () => {
+  currentPaintTexture = textures.slime;
+});
 
 let currentPaintMesh = null;
 
@@ -349,15 +633,10 @@ function setupPaintTool(targetMesh) {
     }
   });
 
-  // Cursor change and instructions
-  // let alertDiv = document.getElementById("canvas-alert");
-  // if (!alertDiv) {
-  //   alertDiv = document.createElement("div");
-  //   alertDiv.id = "canvas-alert";
-  //   Object.assign(alertDiv.style, {
   canvas.style.cursor = "crosshair";
   const info = document.createElement("div");
-  info.textContent = "Paint mode: click + drag";
+  info.textContent =
+    "Paint mode: click + drag. Double click/tap and drag gifs to add - pinch to enlarge!";
   Object.assign(info.style, {
     position: "absolute",
     padding: "10px 20px",
@@ -377,28 +656,79 @@ function setupPaintTool(targetMesh) {
 }
 
 // Common paint handlers
-canvas.addEventListener("pointerdown", (evt) => {
+function getEventPosition(e) {
+  if (e.touches && e.touches.length > 0) {
+    return {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+    };
+  } else {
+    return {
+      x: e.clientX,
+      y: e.clientY,
+    };
+  }
+}
+
+function handleDown(e) {
   if (!currentPaintMesh) return;
   painting = true;
   controls.enabled = false;
-  updateMouse(evt);
+
+  const pos = getEventPosition(e);
+  updateMouseCoords(pos.x, pos.y);
   paintOnModel();
-});
-canvas.addEventListener("pointermove", (evt) => {
+
+  e.preventDefault(); // prevent page scroll on touch
+}
+
+function handleMove(e) {
   if (!painting) return;
-  updateMouse(evt);
+
+  const pos = getEventPosition(e);
+  updateMouseCoords(pos.x, pos.y);
   paintOnModel();
-});
-canvas.addEventListener("pointerup", () => {
+
+  e.preventDefault();
+}
+
+function handleUp(e) {
   painting = false;
   controls.enabled = true;
-});
+}
+
+function updateMouseCoords(clientX, clientY) {
+  const r = canvas.getBoundingClientRect();
+  mouse.x = ((clientX - r.left) / r.width) * 2 - 1;
+  mouse.y = -((clientY - r.top) / r.height) * 2 + 1;
+}
+
+// Add listeners for both mouse and touch
+canvas.addEventListener("mousedown", handleDown);
+canvas.addEventListener("mousemove", handleMove);
+canvas.addEventListener("mouseup", handleUp);
+
+canvas.addEventListener("touchstart", handleDown, { passive: false });
+canvas.addEventListener("touchmove", handleMove, { passive: false });
+canvas.addEventListener("touchend", handleUp);
 
 // Helper: compute normalized mouse coords
 function updateMouse(e) {
   const r = canvas.getBoundingClientRect();
   mouse.x = ((e.clientX - r.left) / r.width) * 2 - 1;
   mouse.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+}
+
+function createPatternFromTexture(texture) {
+  if (!texture || !texture.image) return null;
+
+  const patternCanvas = document.createElement("canvas");
+  patternCanvas.width = texture.image.width;
+  patternCanvas.height = texture.image.height;
+  const ctx = patternCanvas.getContext("2d");
+  ctx.drawImage(texture.image, 0, 0);
+
+  return paintCtx.createPattern(patternCanvas, "repeat");
 }
 
 // Draws brush texture onto model's canvas texture
@@ -412,8 +742,17 @@ function paintOnModel() {
   const size = 32; // brush size
   const x = uv.x * paintCanvas.width - size / 2;
   const y = (1 - uv.y) * paintCanvas.height - size / 2;
-  paintCtx.fillStyle = "#000";
-  paintCtx.fillRect(x, y, size, size);
+
+  // Create a pattern from the current selected texture
+  const pattern = createPatternFromTexture(currentPaintTexture);
+  if (!pattern) return;
+
+  paintCtx.fillStyle = pattern;
+  paintCtx.beginPath();
+  paintCtx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+  paintCtx.fill();
+  paintCtx.closePath();
+
   paintTexture.needsUpdate = true;
 }
 
@@ -431,6 +770,188 @@ function stylePaintLabel(el) {
     zIndex: 1000,
   });
 }
+
+function updateTextureButtonsVisibility() {
+  const texturesDiv = document.getElementById("texturesDiv");
+  if (mixedModels.length > 0) {
+    texturesDiv.style.display = "flex"; // show buttons
+  } else {
+    texturesDiv.style.display = "none"; // hide buttons
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  updateTextureButtonsVisibility();
+});
+
+const texturesDiv = document.getElementById("texturesDiv");
+const emailBtn = document.getElementById("emailBtn");
+const userEmail = document.getElementById("userEmail");
+const skyBtn = document.getElementById("skyBtn");
+const selectModelBtn = document.getElementById("selectModelBtn");
+const gifThumbnails = document.getElementById("gifThumbnails");
+
+let mixedModelActive = false;
+
+// Call this function to show mixed model UI and disable model selection
+function showMixedModelUI() {
+  mixedModelActive = true;
+
+  // Hide model thumbnails and disable interactions
+  modelThumbnails.style.display = "none";
+  rightArrow.style.display = "none";
+  leftArrow.style.display = "none";
+  selectModelBtn.style.display = "none";
+  // selectModelBtn.disabled = true;
+  selectModelBtn.style.pointerEvents = "none";
+  selectModelBtn.style.opacity = "0.1"; // visually show disabled
+
+  // Show textures, email, and sky buttons
+  console.log("Showing gifs...");
+  gifThumbnails.style.display = "flex";
+  texturesDiv.style.display = "flex";
+  emailBtn.style.display = "inline-block";
+  skyBtn.style.display = "inline-block";
+  userEmail.style.display = "inline-block";
+
+  // showGIFThumbnails();
+}
+
+// Call this function to clear mixed model and reset UI
+function clearMixedModelUI() {
+  mixedModelActive = false;
+
+  mixedModels.forEach((model) => scene.remove(model));
+  mixedModels.length = 0;
+
+  hideAllCarouselModels();
+
+  currentModel = null;
+  currentIndex = null;
+
+  modelThumbnails.style.display = "flex";
+  selectModelBtn.style.display = "inline-block";
+  selectModelBtn.style.pointerEvents = "auto";
+  selectModelBtn.style.opacity = "1";
+  rightArrow.style.display = "inline-block";
+  leftArrow.style.display = "inline-block";
+  gifThumbnails.style.display = "none";
+  texturesDiv.style.display = "none";
+  emailBtn.style.display = "none";
+  skyBtn.style.display = "none";
+  userEmail.style.display = "none";
+}
+
+emailBtn.addEventListener("click", async () => {
+  // 1. Get canvas screenshot
+  const canvas = renderer.domElement;
+  const imageData = canvas.toDataURL("image/png").split(",")[1]; // base64 only
+
+  // 2. Create popup immediately
+  const popup = document.createElement("div");
+  popup.style.position = "fixed";
+  popup.style.top = "50%";
+  popup.style.left = "50%";
+  popup.style.transform = "translate(-50%, -50%)";
+  popup.style.background = "#fff";
+  popup.style.padding = "20px";
+  popup.style.border = "2px solid #0088cc";
+  popup.style.borderRadius = "12px";
+  popup.style.zIndex = "9999";
+  popup.style.boxShadow = "0 0 20px rgba(0,0,0,0.5)";
+  popup.style.maxWidth = "90vw";
+  popup.style.maxHeight = "90vh";
+  popup.style.overflow = "auto";
+  popup.style.textAlign = "center";
+  popup.textContent = "Uploading image...";
+
+  document.body.appendChild(popup);
+
+  // 3. Upload to Imgur
+  try {
+    const imgurRes = await fetch("https://api.imgur.com/3/image", {
+      method: "POST",
+      headers: {
+        Authorization: "Client-ID 24b5f71637a86a9",
+        Accept: "application/json",
+      },
+      body: new URLSearchParams({
+        image: imageData,
+        type: "base64",
+      }),
+    });
+
+    const imgurData = await imgurRes.json();
+
+    if (!imgurData.success) throw new Error("Imgur upload failed");
+
+    const uploadedImageUrl = imgurData.data.link;
+
+    // 4. Generate QR Code (that points to the uploaded image URL)
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
+      uploadedImageUrl
+    )}&size=150x150`;
+
+    // 5. Clear and update popup content
+    popup.innerHTML = "";
+
+    // Screenshot image
+    const img = document.createElement("img");
+    img.src = uploadedImageUrl;
+    img.style.maxWidth = "100%";
+    img.style.height = "auto";
+
+    // QR code image
+    const qr = document.createElement("img");
+    qr.src = qrCodeUrl;
+    qr.alt = "Scan to view image";
+    qr.style.marginTop = "10px";
+    qr.style.border = "1px solid #ccc";
+    qr.style.padding = "4px";
+    qr.style.background = "#fafafa";
+
+    // Close button
+    // Close button
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "Close";
+    closeBtn.style.fontSize = "1.3vw";
+    closeBtn.style.marginTop = "10px";
+    closeBtn.style.padding = "6px 14px";
+    closeBtn.style.border = "none";
+    closeBtn.style.background = "grey";
+    closeBtn.style.color = "white";
+    closeBtn.style.borderRadius = "6px";
+    closeBtn.style.cursor = "pointer";
+
+//     closeBtn.onclick = () => {
+//       console.log("Close clicked. Removing sprites:", addedSprites.length);
+//       popup.remove();
+//       clearMixedModelUI();
+
+//       addedSprites.forEach((sprite) => {
+//         scene.remove(sprite);
+//         if (sprite.material.map) sprite.material.map.dispose();
+//         sprite.material.dispose();
+//         sprite.geometry?.dispose?.();
+//       });
+
+//       addedSprites.length = 0;
+//       draggingSprite = null; // ✅ reset reference to removed sprite
+//     };
+    closeBtn.onclick = () => {
+  location.reload(); // 🔄 Reloads the page completely
+};
+
+    popup.appendChild(img);
+    popup.appendChild(document.createElement("br"));
+    popup.appendChild(qr);
+    popup.appendChild(document.createElement("br"));
+    popup.appendChild(closeBtn);
+  } catch (err) {
+    popup.textContent = "Failed to upload image. Try again.";
+    console.error(err);
+  }
+});
 
 function showMixedModel() {
   if (unusedBaseModels.length === 0) {
@@ -466,6 +987,9 @@ function showMixedModel() {
     });
   }
 
+  // Optionally reset selection
+  selectedModels = []; // ← important if you want it to work again
+
   scene.add(baseModel);
   mixedModels.push(baseModel);
 
@@ -482,6 +1006,40 @@ function showMixedModel() {
   showCanvasAlert("Mixed model added! - Use left/right arrows to add another", {
     persistent: false,
   });
+
+  updateTextureButtonsVisibility();
+  showMixedModelUI();
+}
+
+function hideAllModels() {
+  [...baseModels, ...carouselModels].forEach(({ model }) => {
+    model.visible = false;
+  });
+}
+
+function resetSelection() {
+  selectedModels = [];
+
+  [...baseModels, ...carouselModels].forEach(({ model }) => {
+    model.visible = false;
+  });
+
+  [...modelThumbnails.children].forEach((img) => {
+    img.classList.remove("highlighted");
+  });
+
+  if (mixedModel) {
+    mixedModel.visible = false;
+  }
+
+  clearGifSprites();
+}
+
+function handleModelSelection(model) {
+  selectedModels.push(model);
+  if (selectedModels.length === 2) {
+    showMixedModel(); // or whatever your mixing logic is
+  }
 }
 
 async function init() {
