@@ -175,25 +175,24 @@ const modelThumbs = [
 
 // Add thumbnails to UI
 modelThumbs.forEach((src, index) => {
-  const img = document.createElement("img");
-  img.src = src;
-  img.style.width = "8vw";
-  // img.style.height = "8vh";
-  img.style.cursor = "pointer";
-  img.style.transition = "all 0.3s ease";
-  img.style.padding = "10px";
-  img.style.background = "linear-gradient(to bottom, #d3d3d3, #a9a9a9)";
-  img.style.border = "1px solid #4a5764";
-  img.style.boxShadow = `
-  0 4px 6px rgba(0, 0, 0, 0.4),
-  inset 0 1px 0 white,
-  inset 0 -1px 0 #888
+ const img = document.createElement("img");
+img.src = src;
+img.style.width = "8vw";
+img.style.cursor = "pointer";
+img.style.transition = "0.3s";
+img.style.padding = "10px";
+img.style.background = "linear-gradient(120deg, #ffe2f2 0%, #b5dfff 100%)";
+img.style.boxShadow = `
+  0 0 20px 6px rgba(255, 214, 240, 0.6),
+  0 2px 12px 3px rgba(181, 223, 255, 0.333),
+  0 0 2px 0 #fff
 `;
-  img.style.borderRadius = "4px";
-  img.style.fontWeight = "bold";
-  img.style.color = "#333";
-  img.style.pointerEvents = "auto";
-  img.dataset.index = index;
+img.style.borderRadius = "4px";
+img.style.fontWeight = "bold";
+img.style.color = "rgb(51, 51, 51)";
+img.style.pointerEvents = "auto";
+img.dataset.index = index;
+
 
   // Initially, only the first thumbnail is highlighted
   if (index === 0) img.classList.add("highlighted");
@@ -882,6 +881,11 @@ emailBtn.addEventListener("click", async () => {
   popup.style.overflow = "auto";
   popup.style.textAlign = "center";
   popup.textContent = "Uploading image...";
+  popup.style.boxShadow = `
+  0 0 20px 6px rgba(255, 214, 240, 0.6),
+  0 2px 12px 3px rgba(181, 223, 255, 0.333),
+  0 0 2px 0 #fff
+`;
 
   document.body.appendChild(popup);
 
